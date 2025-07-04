@@ -133,44 +133,6 @@ public class WebServer {
         if (isDebugMode) {
             long duration = finishTime - startTime;
             String debugMessage = String.format("Tiempo de procesamiento: %d ns", duration);
-            exchange.getResponseHeaders().put("X-Debug-Info", Arrays.asList(debugMessage));
-        }
-
-        sendResponse(responseBytes, exchange);
-    }
-
-    private byte[] processSearchRequest(byte[] requestBytes) {
-        String bodyString = new String(requestBytes);
-        String[] parts = bodyString.split(",");
-        
-        if (parts.length != 2) {
-            return "Formato incorrecto. Use: cantidad,cadena".getBytes();
-        }
-
-        try {
-            int count = Integer.parseInt(parts[0]);
-            String searchString = parts[1];
-            List<String> generatedStrings = new ArrayList<>();
-            Random random = new Random();
-
-            for (int i = 0; i < count; i++) {
-                StringBuilder sb = new StringBuilder();
-                for (int j = 0; j < 3; j++) {
-                    sb.append((char) (random.nextInt(26) + 'A'));
-                }
-                generatedStrings.add(sb.toString());
-            }
-
-            int matches = 0;
-            for (String s : generatedStrings) {
-                if (s.equalsIgnoreCase(searchString)) {
-                    matches++;
-                }
-            }
-
-            return String.format("La cadena '%s' aparece %d veces", searchString, matches).getBytes();
-        } catch (NumberFormatException e) {
-            return "El primer parámetro debe ser un número".getBytes();
         }
     }
 
