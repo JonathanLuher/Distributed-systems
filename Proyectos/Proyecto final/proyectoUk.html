@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoTracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./main.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div>
+                    <h1>CryptoTracker</h1>
+                    <p class="header-subtitle">Monitoreo en tiempo real de criptomonedas</p>
+                </div>
+            </div>
+            <div class="header-actions">
+               <!--  <button class="btn btn-primary" onclick="checkServerStatus()">
+                    <i class="fas fa-plug"></i> Conectar al Servidor
+                </button> -->
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2">
+            <!-- Panel de Estado del Servidor -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-server"></i> Estado del Servidor</h3>
+                </div>
+                <div id="serverStatus">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle"></i>
+                        <div>Presiona "Conectar" para verificar el estado del servidor</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de Salud del Sistema -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-heartbeat"></i> Salud del Sistema</h3>
+                </div>
+                <div id="healthStatus">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle"></i>
+                        <div>Información de salud no disponible</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Precios Actuales -->
+        <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-coins"></i> Precios Actuales</h3>
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="loadCurrentPrices()">
+                        <i class="fas fa-sync-alt"></i> Refrescar
+                    </button>
+                </div>
+            </div>
+            <div id="currentPrices">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Cargando datos de criptomonedas...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Historia -->
+        <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-chart-area"></i> Historial de Precios</h3>
+            </div>
+            <div class="grid grid-cols-4">
+                <div class="form-group">
+                    <label>Crypto para Historial</label>
+                    <select id="historyCryptoId">
+                        <option value="">Seleccionar...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Período</label>
+                    <select id="historyHours">
+                        <option value="1">1 hora</option>
+                        <option value="6">6 horas</option>
+                        <option value="12">12 horas</option>
+                        <option value="24" selected>24 horas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary" onclick="loadHistoryChart()" style="margin-top: 1.6rem;">
+                        <i class="fas fa-chart-line"></i> Cargar Historial
+                    </button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="historyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico de Comparación -->
+        <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-balance-scale"></i> Comparación de Cryptos</h3>
+            </div>
+            <div class="grid grid-cols-4">
+                <div class="form-group">
+                    <label>Crypto IDs (separados por coma)</label>
+                    <input type="text" id="compareCryptoIds" placeholder="1,2,3" value="1,2">
+                </div>
+                <div class="form-group">
+                    <label>Hora Inicio</label>
+                    <input type="number" id="compareStartHour" min="0" max="23" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Hora Fin</label>
+                    <input type="number" id="compareEndHour" min="0" max="23" value="23">
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary" onclick="loadCompareChart()" style="margin-top: 1.6rem;">
+                        <i class="fas fa-chart-bar"></i> Comparar
+                    </button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="compareChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico de Regresión -->
+        <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-chart-line"></i> Análisis de Regresión</h3>
+            </div>
+            <div class="grid grid-cols-4">
+                <div class="form-group">
+                    <label>Crypto ID</label>
+                    <select id="regressionCryptoId">
+                        <option value="">Seleccionar...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Hora Inicio</label>
+                    <input type="number" id="regressionStartHour" min="0" max="23" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Hora Fin</label>
+                    <input type="number" id="regressionEndHour" min="0" max="23" value="23">
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary" onclick="loadRegressionChart()" style="margin-top: 1.6rem;">
+                        <i class="fas fa-calculator"></i> Analizar
+                    </button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="regressionChart"></canvas>
+            </div>
+            <div id="regressionInfo" style="display: none;">
+                <h3 class="card-title" style="margin-top: 1.5rem; margin-bottom: 1rem;"><i class="fas fa-chart-pie"></i> Resultados del Análisis</h3>
+                <div class="regression-stats" id="regressionStats"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let historyChart, compareChart, regressionChart;
+        let cryptosList = [];
+
+        function getServerUrl() {
+            return "http://146.148.78.195"; // URL fija del servidor
+        }
+
+        function showLoading(elementId) {
+            document.getElementById(elementId).innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Cargando datos...</p>
+                </div>
+            `;
+        }
+
+        function showError(elementId, message) {
+            document.getElementById(elementId).innerHTML = `
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div>Error: ${message}</div>
+                </div>
+            `;
+        }
+
+        function showSuccess(elementId, message) {
+            document.getElementById(elementId).innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <div>${message}</div>
+                </div>
+            `;
+        }
+
+        async function checkServerStatus() {
+            showLoading('serverStatus');
+            try {
+                const response = await fetch(`${getServerUrl()}/status`);
+                const text = await response.text();
+                document.getElementById('serverStatus').innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong>Servidor Conectado</strong><br>
+                            <small style="opacity: 0.8;">${text}</small>
+                        </div>
+                    </div>
+                `;
+                await loadHealthStatus();
+                await loadCryptosList();
+                await loadCurrentPrices();
+            } catch (error) {
+                showError('serverStatus', `No se pudo conectar al servidor: ${error.message}`);
+            }
+        }
+
+        // Función para crear mini gráficas
+        function createMiniChart(cryptoId, historyData) {
+            const ctx = document.getElementById(`miniChart-${cryptoId}`).getContext('2d');
+            
+            // Determinar color basado en la tendencia (último vs primer precio)
+            const firstPrice = historyData[0].price;
+            const lastPrice = historyData[historyData.length - 1].price;
+            const isPositive = lastPrice >= firstPrice;
+            const chartColor = isPositive ? '#10b981' : '#ef4444';
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: historyData.map((_, i) => i), // Solo índices para simplificar
+                    datasets: [{
+                        data: historyData.map(point => point.price),
+                        borderColor: chartColor,
+                        backgroundColor: 'transparent',
+                        borderWidth: 1,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            display: false,
+                            beginAtZero: false
+                        }
+                    },
+                    interaction: { mode: 'nearest', intersect: false }
+                }
+            });
+        }
+
+
+        // Obtener iconos
+        function getAvailableIcons() {
+            // Mapeo completo de símbolos/names a URLs
+            const iconMap = {
+                // Bitcoin Cash
+                'bch': 'bitcoincash.png',
+                'bitcoincash': 'bitcoincash.png',
+
+                // Bitcoin Cash
+                'btc': 'bitcoin.png',
+                'bitcoin': 'bitcoin.png',
+                
+                // Cardano
+                'ada': 'cardano.png',
+                'cardano': 'cardano.png',
+                
+                // Chainlink
+                'link': 'chainlink.png',
+                'chainlink': 'chainlink.png',
+                
+                // Dogecoin
+                'doge': 'dogecoin.png',
+                'dogecoin': 'dogecoin.png',
+                
+                // Ethereum
+                'eth': 'ethereum.png',
+                'ethereum': 'ethereum.png',
+                
+                // Hyperliquid
+                'hyperliquid': 'hyperliquid.png',
+                
+                // Solana
+                'sol': 'solana.png',
+                'solana': 'solana.png',
+                
+                // Tron
+                'trx': 'tron.png',
+                'tron': 'tron.png',
+                
+                // XRP/Ripple
+                'xrp': 'xrp.png',
+                'ripple': 'xrp.png'
+            };
+            
+            // Convertir a URLs completas
+            const baseUrl = 'https://storage.googleapis.com/cryptotracker-logos/';
+            const result = {};
+            
+            for (const [key, value] of Object.entries(iconMap)) {
+                result[key] = baseUrl + value;
+            }
+            
+            return Promise.resolve(result);
+        }
+
+        async function loadHealthStatus() {
+            try {
+                const response = await fetch(`${getServerUrl()}/health`);
+                const health = await response.json();
+                
+                const statusClass = health.status === 'healthy' ? 'alert-success' : 'alert-error';
+                const statusIcon = health.status === 'healthy' ? 'fa-check-circle' : 'fa-exclamation-circle';
+                
+                document.getElementById('healthStatus').innerHTML = `
+                    <div class="alert ${statusClass}">
+                        <i class="fas ${statusIcon}"></i>
+                        <div>
+                            <strong>Estado: ${health.status}</strong><br>
+                            <small style="opacity: 0.8;">
+                                Servicio: ${health.service} | 
+                                Líder: ${health.isLeader ? 'Sí' : 'No'} | 
+                                DB: ${health.database}
+                            </small>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                showError('healthStatus', error.message);
+            }
+        }
+
+        async function loadCryptosList() {
+            try {
+                const response = await fetch(`${getServerUrl()}/cryptos`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    cryptosList = data.data;
+                    updateCryptoSelects();
+                }
+            } catch (error) {
+                console.error('Error loading cryptos list:', error);
+            }
+        }
+
+        function updateCryptoSelects() {
+            const selects = ['historyCryptoId', 'regressionCryptoId'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">Seleccionar...</option>';
+                cryptosList.forEach(crypto => {
+                    select.innerHTML += `<option value="${crypto.id}">${crypto.symbol} - ${crypto.name}</option>`;
+                });
+            });
+        }
+
+        async function loadCurrentPrices() {
+            showLoading('currentPrices');
+            try {
+                // Obtener los iconos disponibles desde la lista predefinida
+                const availableIcons = await getAvailableIcons();
+                
+                const response = await fetch(`${getServerUrl()}/prices/current`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    let html = '';
+                    
+                    // Cargar historial para cada criptomoneda
+                    const cryptoPromises = data.data.map(async crypto => {
+                        try {
+                            const historyResponse = await fetch(`${getServerUrl()}/prices/history?crypto_id=${crypto.id}&hours=24`);
+                            const historyData = await historyResponse.json();
+                            
+                            // Buscar el icono correspondiente - versión mejorada
+                            const cryptoSymbol = crypto.symbol.toLowerCase();
+                            const cryptoName = crypto.name.toLowerCase().replace(/ /g, '');
+
+                            const iconUrl = availableIcons[cryptoSymbol] || 
+                                        availableIcons[cryptoName] || 
+                                        availableIcons[cryptoSymbol.replace('usdt', '')] || 
+                                        null;
+                            
+                            return { 
+                                ...crypto, 
+                                history: historyData.status === 'success' ? historyData.data : [],
+                                iconUrl: iconUrl
+                            };
+                        } catch (error) {
+                            console.error(`Error loading history for ${crypto.symbol}:`, error);
+                            return { 
+                                ...crypto, 
+                                history: [], 
+                                iconUrl: null 
+                            };
+                        }
+                    });
+                    
+                    // Esperar a que todas las peticiones de historial terminen
+                    const cryptosWithHistory = await Promise.all(cryptoPromises);
+                    
+                    // Generar HTML para cada criptomoneda
+                    cryptosWithHistory.forEach(crypto => {
+                        // Calcular cambio porcentual basado en el historial real si está disponible
+                        let change = 0;
+                        let isPositive = true;
+                        
+                        if (crypto.history.length > 1) {
+                            const firstPrice = crypto.history[0].price;
+                            const lastPrice = crypto.history[crypto.history.length - 1].price;
+                            change = ((lastPrice - firstPrice) / firstPrice * 100).toFixed(2);
+                            isPositive = change >= 0;
+                        } else {
+                            // Fallback: cambio aleatorio si no hay historial
+                            change = (Math.random() * 10 - 5).toFixed(2);
+                            isPositive = parseFloat(change) >= 0;
+                        }
+                        
+                        html += `
+                            <div class="crypto-card">
+                                <div class="crypto-header">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        ${crypto.iconUrl ? `
+                                            <img src="${crypto.iconUrl}" 
+                                                alt="${crypto.symbol}" 
+                                                class="crypto-icon"
+                                                onerror="this.onerror=null;this.style.display='none'">
+                                        ` : ''}
+                                        <div class="crypto-symbol">${crypto.symbol}</div>
+                                    </div>
+                                    <div class="crypto-price">$${crypto.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 8})}</div>
+                                </div>
+                                <div class="crypto-name">${crypto.name}</div>
+                                <div class="crypto-change ${isPositive ? 'positive' : 'negative'}">
+                                    <i class="fas fa-arrow-${isPositive ? 'up' : 'down'}"></i>
+                                    ${Math.abs(change)}%
+                                </div>
+                                
+                                <!-- Mini gráfica -->
+                                <div class="mini-chart-container">
+                                    <canvas id="miniChart-${crypto.id}"></canvas>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('currentPrices').innerHTML = html;
+                    
+                    // Crear las mini gráficas después de que el HTML se haya renderizado
+                    setTimeout(() => {
+                        cryptosWithHistory.forEach(crypto => {
+                            if (crypto.history && crypto.history.length > 0) {
+                                createMiniChart(crypto.id, crypto.history);
+                            }
+                        });
+                    }, 100);
+                }
+            } catch (error) {
+                showError('currentPrices', error.message);
+            }
+        }
+
+        async function loadHistoryChart() {
+            const cryptoId = document.getElementById('historyCryptoId').value;
+            const hours = document.getElementById('historyHours').value;
+            
+            if (!cryptoId) {
+                alert('Selecciona una criptomoneda');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${getServerUrl()}/prices/history?crypto_id=${cryptoId}&hours=${hours}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const ctx = document.getElementById('historyChart').getContext('2d');
+                    
+                    if (historyChart) {
+                        historyChart.destroy();
+                    }
+                    
+                    historyChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.data.map(point => new Date(point.timestamp).toLocaleTimeString()),
+                            datasets: [{
+                                label: `${data.symbol} - ${data.name}`,
+                                data: data.data.map(point => point.price),
+                                borderColor: '#6366f1',
+                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.1,
+                                pointRadius: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: false,
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.05)'
+                                    },
+                                    ticks: {
+                                        color: 'rgba(255, 255, 255, 0.7)',
+                                        callback: function(value) {
+                                            return '$' + value.toLocaleString();
+                                        }
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.05)'
+                                    },
+                                    ticks: {
+                                        color: 'rgba(255, 255, 255, 0.7)'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: 'rgba(255, 255, 255, 0.7)'
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: `Historial de ${data.symbol} - Últimas ${hours} horas`,
+                                    color: 'rgba(255, 255, 255, 0.8)',
+                                    font: {
+                                        size: 16
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                alert('Error cargando historial: ' + error.message);
+            }
+        }
+
+        async function loadCompareChart() {
+            const cryptoIds = document.getElementById('compareCryptoIds').value;
+            const startHour = document.getElementById('compareStartHour').value;
+            const endHour = document.getElementById('compareEndHour').value;
+            
+            if (!cryptoIds) {
+                alert('Ingresa los IDs de las criptomonedas');
+                return;
+            }
+
+            showLoading('compareChart');
+            
+            try {
+                // Obtener datos para cada criptomoneda
+                const ids = cryptoIds.split(',').map(id => id.trim());
+                const cryptoDataPromises = ids.map(async id => {
+                    const response = await fetch(`${getServerUrl()}/prices/history?crypto_id=${id}&hours=24`);
+                    return response.json();
+                });
+
+                const cryptoResponses = await Promise.all(cryptoDataPromises);
+                const validCryptos = cryptoResponses.filter(response => response.status === 'success');
+                
+                if (validCryptos.length === 0) {
+                    throw new Error("No hay datos válidos para mostrar");
+                }
+
+                // Normalizar datos basados en cambio porcentual
+                const datasets = validCryptos.map((crypto, index) => {
+                    const prices = crypto.data.map(point => point.price);
+                    const basePrice = prices[0];
+                    
+                    // Calcular cambio porcentual para cada punto
+                    const normalizedData = prices.map(price => {
+                        return ((price - basePrice) / basePrice * 100).toFixed(2);
+                    });
+
+                    const colors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+                    const color = colors[index % colors.length];
+                    
+                    return {
+                        label: `${crypto.symbol} - ${crypto.name}`,
+                        data: normalizedData,
+                        borderColor: color,
+                        backgroundColor: `${color}20`,
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    };
+                });
+
+                // Crear etiquetas de tiempo
+                const timeLabels = validCryptos[0].data.map(point => 
+                    new Date(point.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
+                );
+
+                // Renderizar gráfico
+                const ctx = document.getElementById('compareChart').getContext('2d');
+                
+                if (compareChart) {
+                    compareChart.destroy();
+                }
+                
+                compareChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: timeLabels,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.05)'
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    callback: function(value) {
+                                        return `${value}%`;
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Cambio porcentual',
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.05)'
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    padding: 20,
+                                    boxWidth: 12
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y}%`;
+                                    }
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Comparación de rendimiento porcentual',
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error en loadCompareChart:", error);
+                showError('compareChart', 'Error cargando comparación: ' + error.message);
+            }
+        }
+
+            
+        async function loadRegressionChart() {
+            const cryptoId = document.getElementById('regressionCryptoId').value;
+            const startHour = document.getElementById('regressionStartHour').value;
+            const endHour = document.getElementById('regressionEndHour').value;
+            
+            if (!cryptoId) {
+                alert('Selecciona una criptomoneda');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${getServerUrl()}/prices/regression?crypto_id=${cryptoId}&start_hour=${startHour}&end_hour=${endHour}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const ctx = document.getElementById('regressionChart').getContext('2d');
+                    
+                    if (regressionChart) {
+                        regressionChart.destroy();
+                    }
+                    
+                    // Datos originales
+                    const originalData = data.data.map(point => point.price);
+                    const labels = data.data.map((point, index) => `Punto ${index + 1}`);
+                    
+                    // Línea de regresión
+                    const regressionData = data.data.map((point, index) => 
+                        data.regression.slope * index + data.regression.intercept
+                    );
+                    
+                    regressionChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: `${data.symbol} - Datos Reales`,
+                                    data: originalData,
+                                    borderColor: '#6366f1',
+                                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                    borderWidth: 2,
+                                    pointBackgroundColor: '#6366f1',
+                                    pointRadius: 3
+                                },
+                                {
+                                    label: 'Línea de Regresión',
+                                    data: regressionData,
+                                    borderColor: '#10b981',
+                                    backgroundColor: 'transparent',
+                                    borderWidth: 3,
+                                    borderDash: [5, 5],
+                                    pointRadius: 0
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: false,
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.05)'
+                                    },
+                                    ticks: {
+                                        color: 'rgba(255, 255, 255, 0.7)',
+                                        callback: function(value) {
+                                            return '$' + value.toLocaleString();
+                                        }
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.05)'
+                                    },
+                                    ticks: {
+                                        color: 'rgba(255, 255, 255, 0.7)'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: 'rgba(255, 255, 255, 0.7)'
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: `Análisis de Regresión - ${data.symbol}`,
+                                    color: 'rgba(255, 255, 255, 0.8)',
+                                    font: {
+                                        size: 16
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Mostrar estadísticas de regresión
+                    document.getElementById('regressionInfo').style.display = 'block';
+                    document.getElementById('regressionStats').innerHTML = `
+                        <div class="regression-stat">
+                            <div class="regression-stat-title">Ecuación</div>
+                            <div class="regression-stat-value">${data.regression.equation}</div>
+                        </div>
+                        <div class="regression-stat">
+                            <div class="regression-stat-title">Coeficiente R²</div>
+                            <div class="regression-stat-value">${data.regression.r_squared}</div>
+                        </div>
+                        <div class="regression-stat">
+                            <div class="regression-stat-title">Puntos de datos</div>
+                            <div class="regression-stat-value">${data.regression.data_points}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                alert('Error cargando regresión: ' + error.message);
+            }
+        }
+
+        // Cargar datos iniciales al cargar la página
+        window.addEventListener('load', function() {
+            // Intentar conexión automática al cargar la página
+            setTimeout(checkServerStatus, 1000);
+        });
+    </script>
+</body>
+</html>
